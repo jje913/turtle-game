@@ -65,6 +65,13 @@ h1{font-size:40px;margin-bottom:9px;display:flex;align-items:center;justify-cont
 #goalFill{height:100%;width:0%;background:#0fa3c9;border-radius:9px;transition:width .2s}
 #touchPad{position:absolute;left:0;bottom:0;width:100%;height:95px;z-index:40;display:none;justify-content:space-between;align-items:center;padding:0 14px;pointer-events:none}
 #touchPad .pad{pointer-events:auto;width:62px;height:62px;border-radius:50%;background:#ffffffb3;color:#12657a;font-size:26px;font-weight:bold;display:flex;align-items:center;justify-content:center;border:0}
+#fullRankBtn{margin-top:14px;background:transparent;border:1px solid #fff;color:#fff;padding:9px 18px;min-height:auto;font-size:13px;border-radius:20px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#fullRankBtn:active{background:#ffffff33}
+#fullRankScreen{display:none;position:absolute;inset:0;z-index:110;background:#0d4a5eef;color:#fff;flex-direction:column;align-items:center;padding:24px 14px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+#fullRankScreen h2{font-size:24px;margin-bottom:14px}
+#rankTabs{margin-bottom:16px}
+#rankTabs button.activeTab{background:#0fa3c9;color:#fff}
+#fullRankList{background:#ffffff1a;border-radius:14px;padding:14px 20px;min-width:220px;max-width:320px;width:100%;font-size:15px;line-height:1.9;text-align:left}
 @media(max-width:600px){h1{font-size:32px}.buttons{flex-direction:column;width:180px}.buttons button{width:100%}#ranking{width:112px;font-size:10px}#hud{font-size:17px}}
 </style>
 </head>
@@ -84,6 +91,18 @@ h1{font-size:40px;margin-bottom:9px;display:flex;align-items:center;justify-cont
       <button data-act="normal">🌊 보통</button>
       <button data-act="hard">🔥 어려움</button>
     </div>
+    <button id="fullRankBtn" data-act="fullrank">🏆 전체 순위 보기</button>
+  </div>
+
+  <div id="fullRankScreen">
+    <h2>🏆 전체 순위</h2>
+    <div class="buttons" id="rankTabs">
+      <button data-act="rtabEasy">🌱 쉬움</button>
+      <button data-act="rtabNormal">🌊 보통</button>
+      <button data-act="rtabHard">🔥 어려움</button>
+    </div>
+    <div id="fullRankList">불러오는 중...</div>
+    <div class="buttons" style="margin-top:18px"><button data-act="closeRank">닫기</button></div>
   </div>
 
   <div id="gameOverScreen">
@@ -496,7 +515,7 @@ function saveRanking(){
  if(existing){if(score>existing.score){existing.score=score;existing.name=name}}
  else{r.push({name,score})}
  r.sort((a,b)=>b.score-a.score);
- sSet(key,JSON.stringify(r.slice(0,3)));
+ sSet(key,JSON.stringify(r.slice(0,50)));
  updateRanking();
 }
 function updateRanking(){
@@ -508,10 +527,48 @@ function updateRanking(){
  }
 }
 
+/* ---------- 전체 순위 보기 ---------- */
+let fullRankLevel="easy";
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]})}
+function openFullRank(){
+ document.getElementById("fullRankScreen").style.display="flex";
+ setFullRankTab(difficulty||"easy");
+}
+function closeFullRank(){document.getElementById("fullRankScreen").style.display="none"}
+function setFullRankTab(level){
+ fullRankLevel=level;
+ document.querySelectorAll("#rankTabs [data-act]").forEach(function(b){
+  b.classList.toggle("activeTab", b.dataset.act==="rtab"+level.charAt(0).toUpperCase()+level.slice(1));
+ });
+ loadFullRank(level);
+}
+function renderFullList(level,arr){
+ if(fullRankLevel!==level)return;
+ const box=document.getElementById("fullRankList");
+ if(!arr.length){box.innerHTML="<div style='text-align:center;opacity:.8'>아직 기록이 없어요</div>";return}
+ box.innerHTML=arr.map(function(r,i){return (i+1)+". "+escapeHtml(r.name)+" — "+r.score+"점"}).join("<br>");
+}
+function loadFullRank(level){
+ if(DB){
+  document.getElementById("fullRankList").innerHTML="불러오는 중...";
+  DB.collection("ranks/"+level+"/players").orderBy("score","desc").get().then(function(snap){
+   const arr=snap.docs.map(function(d){return {name:d.data().name||d.id,score:d.data().score||0}});
+   renderFullList(level,arr);
+  }).catch(function(){
+   if(fullRankLevel===level) document.getElementById("fullRankList").innerHTML="불러오지 못했어요";
+  });
+ }else{
+  const arr=JSON.parse(sGet("rank_"+level)||"[]");
+  renderFullList(level,arr);
+ }
+}
+
 /* --- 모바일 탭 처리: 키보드가 올라와 있어도 첫 탭이 먹히게 --- */
 const ACTS={
  easy:function(){startGame("easy")}, normal:function(){startGame("normal")}, hard:function(){startGame("hard")},
- yes:recordYes, no:recordNo, restart:restartGame, stop:stopGame
+ yes:recordYes, no:recordNo, restart:restartGame, stop:stopGame,
+ fullrank:openFullRank, closeRank:closeFullRank,
+ rtabEasy:function(){setFullRankTab("easy")}, rtabNormal:function(){setFullRankTab("normal")}, rtabHard:function(){setFullRankTab("hard")}
 };
 function bindTap(el){
  const act=el.dataset.act;
