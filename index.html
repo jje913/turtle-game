@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>거북이 무한 점프</title>
+
+<!-- ============================================================
+     파이어베이스 SDK (친구들과 점수 공유용). 그대로 두세요.
+     ============================================================ -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0;user-select:none;-webkit-user-select:none}
+input,textarea{user-select:text!important;-webkit-user-select:text!important;-webkit-touch-callout:default}
+html,body{height:100%}
+body{overflow:hidden;font-family:Arial,sans-serif;background:#8ee8ff;margin:0}
+#game{position:relative;width:100%;height:100%;overflow:hidden;background:linear-gradient(#69d9ff 0%,#c9f7ff 68%,#58c9df 100%);touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+#ground{position:absolute;left:0;bottom:0;width:100%;height:95px;background:#c99a52;border-top:9px solid #56bd4d}
+#hud{position:absolute;top:14px;left:14px;z-index:30;display:flex;gap:16px;font-size:20px;font-weight:bold;color:#07566d}
+#ranking{position:absolute;right:10px;top:10px;width:125px;padding:9px;background:#ffffffd9;border-radius:13px;z-index:35;font-size:11px;color:#174c59}
+#ranking h3{text-align:center;font-size:14px;margin-bottom:5px}.rankTitle{font-weight:bold;margin-top:4px}
+#player{position:absolute;left:90px;bottom:92px;width:76px;height:60px;z-index:20}
+#turtle{width:76px;height:60px;overflow:visible;transform-origin:50% 50%;transition:transform .12s}
+#turtle.flip{transform:scaleX(-1)}
+#turtle g[id^="leg"]{transform-box:fill-box;transform-origin:50% 20%}
+#turtle.run #legA,#turtle.run #legD{animation:stepA .26s linear infinite alternate}
+#turtle.run #legB,#turtle.run #legC{animation:stepB .26s linear infinite alternate}
+@keyframes stepA{from{transform:translate(0,0) rotate(0)}to{transform:translate(2px,-5px) rotate(-12deg)}}
+@keyframes stepB{from{transform:translate(2px,-5px) rotate(-12deg)}to{transform:translate(0,0) rotate(0)}}
+#turtle.jump g[id^="leg"]{transform:translate(0,-6px) scale(.8)}
+#turtle.fall g[id^="leg"]{transform:translate(0,4px) scale(1.06)}
+#turtle.jump{transform:rotate(-7deg)}
+#turtle.jump.flip{transform:scaleX(-1) rotate(-7deg)}
+#turtle.fall{transform:rotate(6deg)}
+#turtle.fall.flip{transform:scaleX(-1) rotate(6deg)}
+#turtle g[id^="leg"]{transition:transform .14s}
+#eyesHurt{display:none}
+#turtle.hurt #eyesNormal{display:none}
+#turtle.hurt #eyesHurt{display:block}
+#turtle.hurt{animation:blink .16s steps(1) 5}
+@keyframes blink{0%{opacity:1}50%{opacity:.25}100%{opacity:1}}
+.object{position:absolute;width:45px;height:45px;font-size:40px;line-height:45px;text-align:center;z-index:15}
+.object.bomb{font-size:46px}
+.object.plastic,.object.kit{display:flex;align-items:center;justify-content:center}
+#dangerFlash{position:absolute;inset:0;z-index:28;background:radial-gradient(circle at 50% 55%,rgba(255,45,45,0) 32%,rgba(255,45,45,.72) 100%);opacity:0;transition:opacity .22s;pointer-events:none}
+#eatPop{position:absolute;z-index:25;font-size:20px;font-weight:bold;color:#fff;text-shadow:0 2px 0 #0a4f63;pointer-events:none;display:none}
+#startScreen,#gameOverScreen{position:absolute;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#14647dcc;color:#fff;overflow-y:auto;padding:18px 12px;-webkit-overflow-scrolling:touch}
+#gameOverScreen{display:none}
+h1{font-size:40px;margin-bottom:9px;display:flex;align-items:center;justify-content:center;gap:8px}#startScreen p{margin-bottom:0}
+#startScreen .desc{margin-bottom:16px;text-align:center;line-height:1.5}
+.icon-turtle{width:44px;height:36px;flex:none}
+.icon-bag{width:16px;height:16px;vertical-align:-3px;flex:none}
+#nameRow{display:flex;flex-direction:column;align-items:center;margin-bottom:18px}
+#nicknameInput{padding:12px 14px;border:0;border-radius:12px;text-align:center;font-size:17px;width:210px;text-transform:none;color:#12657a}
+#nicknameInput[readonly]{background:#dbe9ee;color:#5b7a85}
+#nameError{display:none;font-size:12px;color:#ff4d4d;font-weight:bold;margin-top:8px;text-shadow:0 1px 2px #0006}
+#nameLocked{display:none;font-size:12px;color:#d8f3ff;margin-top:8px}
+.buttons{display:flex;gap:10px}.buttons button,#gameOverScreen button{border:0;border-radius:14px;padding:15px 20px;min-height:52px;background:white;color:#12657a;font-size:17px;font-weight:bold;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.buttons button:active,#gameOverScreen button:active{background:#d7f2fb;transform:scale(.96)}
+#gameOverScreen h2{font-size:34px;margin-bottom:12px}#finalScore{font-size:22px;margin-bottom:22px}
+#stageBanner{position:absolute;top:38%;left:0;width:100%;text-align:center;z-index:60;font-size:46px;font-weight:bold;color:#fff;text-shadow:0 3px 0 #0a4f63,0 0 18px #0af;display:none}
+#goalBar{position:absolute;top:48px;left:14px;width:150px;height:9px;background:#ffffff8c;border-radius:9px;z-index:30;overflow:hidden}
+#goalFill{height:100%;width:0%;background:#0fa3c9;border-radius:9px;transition:width .2s}
+#touchPad{position:absolute;left:0;bottom:0;width:100%;height:95px;z-index:40;display:none;justify-content:space-between;align-items:center;padding:0 14px;pointer-events:none}
+#touchPad .pad{pointer-events:auto;width:62px;height:62px;border-radius:50%;background:#ffffffb3;color:#12657a;font-size:26px;font-weight:bold;display:flex;align-items:center;justify-content:center;border:0}
+@media(max-width:600px){h1{font-size:32px}.buttons{flex-direction:column;width:180px}.buttons button{width:100%}#ranking{width:112px;font-size:10px}#hud{font-size:17px}}
+</style>
+</head>
+<body>
+<div id="game">
+  <div id="errBar" style="display:none;position:absolute;left:0;top:0;width:100%;z-index:200;background:#c62828;color:#fff;font-size:12px;padding:6px 10px;text-align:center"></div>
+  <div id="startScreen">
+    <h1><svg class="icon-turtle" viewBox="0 0 126 100"><path d="M26 52 L10 45 L15 57 L9 66 Z" fill="#8bc746" stroke="#4d3116" stroke-width="4"/><rect x="24" y="64" width="21" height="16" rx="7.5" fill="#8bc746" stroke="#4d3116" stroke-width="4"/><rect x="68" y="64" width="21" height="16" rx="7.5" fill="#8bc746" stroke="#4d3116" stroke-width="4"/><ellipse cx="54" cy="48" rx="39" ry="29" fill="#a5703c" stroke="#4d3116" stroke-width="4.5"/><path d="M16 50 a39 29 0 0 0 76 0 a39 29 0 0 1 -76 0 Z" fill="#7d5127" opacity=".45"/><g fill="none" stroke="#4d3116" stroke-width="3" opacity=".85"><path d="M54 20 L54 76"/><path d="M33 25 L40 73"/><path d="M75 25 L68 73"/><path d="M17 39 q37 8 74 0"/><path d="M17 58 q37 -8 74 0"/></g><rect x="34" y="71" width="21" height="16" rx="7.5" fill="#a8dd5e" stroke="#4d3116" stroke-width="4"/><rect x="60" y="71" width="21" height="16" rx="7.5" fill="#a8dd5e" stroke="#4d3116" stroke-width="4"/><ellipse cx="96" cy="44" rx="24" ry="22" fill="#a8dd5e" stroke="#4d3116" stroke-width="4.5"/><ellipse cx="96" cy="53" rx="13" ry="9" fill="#c6ec86" opacity=".7"/><ellipse cx="90" cy="38" rx="8.8" ry="9.8" fill="#fff" stroke="#4d3116" stroke-width="2.4"/><ellipse cx="108" cy="39" rx="7.4" ry="8.4" fill="#fff" stroke="#4d3116" stroke-width="2.4"/><circle cx="92.4" cy="40" r="4.6" fill="#1d2c16"/><circle cx="110" cy="40.6" r="4" fill="#1d2c16"/><circle cx="90.4" cy="37.2" r="1.9" fill="#fff"/><circle cx="108.2" cy="38" r="1.6" fill="#fff"/><path d="M94 51 q7 6 14 -1" stroke="#4d3116" stroke-width="3.2" fill="none" stroke-linecap="round"/></svg> 거북이 무한 점프</h1>
+    <p class="desc">닉네임을 영어로 입력하세요.<br>← → 로 이동, ↑ 또는 Space 로 점프!<br><span style="font-size:12px;opacity:.85">거북이는 진짜로 해파리를 먹어요.<br><svg class="icon-bag" viewBox="0 0 45 45"><path d="M13 16 L11 40 Q11 42 13 42 L32 42 Q34 42 34 40 L32 16 Z" fill="#ffffff" fill-opacity=".95" stroke="#e8eef0" stroke-width="1.6"/><path d="M17 16 L17 12 Q17 7 22.5 7 Q28 7 28 12 L28 16" fill="none" stroke="#e8eef0" stroke-width="2.2" stroke-linecap="round"/><path d="M15 21 L16 37 M22.5 20 L22.5 38 M30 21 L29 37" stroke="#d5dee0" stroke-width="1.3" fill="none"/></svg> 비닐봉지는 해파리처럼 보여서 거북이가 잘못 삼켜요. 먹으면 ❤️ 2개!<br>🩹 구급상자를 먹으면 ❤️ 1개가 채워져요.</span></p>
+    <div id="nameRow">
+      <input id="nicknameInput" maxlength="12" placeholder="Nickname" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="latin">
+      <p id="nameError">영어로 입력하세요 (영어·숫자만 가능)</p>
+      <p id="nameLocked">다른 사람이 하려면 이름을 지우고 새로 입력하세요 ✏️ (대문자·소문자는 같은 이름으로 쳐요)</p>
+    </div>
+    <div class="buttons">
+      <button data-act="easy">🌱 쉬움</button>
+      <button data-act="normal">🌊 보통</button>
+      <button data-act="hard">🔥 어려움</button>
+    </div>
+  </div>
+
+  <div id="gameOverScreen">
+    <h2 id="endTitle">게임 끝! 💥</h2>
+    <div id="finalScore">점수: 0점</div>
+    <div id="recordQuestion" style="margin-bottom:12px">이 점수를 랭킹에 기록할까요?</div><div class="buttons" style="margin-bottom:10px"><button data-act="yes">Yes</button><button data-act="no">No</button></div>
+    <div>
+      <button data-act="restart">🔄 다시하기</button>
+      <button data-act="stop">🚪 그만하기</button>
+    </div>
+  </div>
+
+  <div id="hud">⭐ <span id="score">0</span>　<span id="lives">❤️❤️❤️</span>　🚩 <span id="stageLabel">1/5</span></div>
+  <div id="goalBar"><div id="goalFill"></div></div>
+  <div id="stageBanner"></div>
+
+  <div id="ranking">
+    <h3>🏆 랭킹</h3>
+    <div id="rankMode" style="display:none;text-align:center;font-size:10px;color:#0d8ea8;margin-bottom:4px">🌐 친구들과 공유 중</div>
+    <div class="rankTitle">🌱 쉬움</div><div id="easyRank">1. -<br>2. -<br>3. -</div>
+    <div class="rankTitle">🌊 보통</div><div id="normalRank">1. -<br>2. -<br>3. -</div>
+    <div class="rankTitle">🔥 어려움</div><div id="hardRank">1. -<br>2. -<br>3. -</div>
+  </div>
+
+  <div id="player">
+    <svg id="turtle" viewBox="0 0 126 100">
+      <ellipse cx="62" cy="93" rx="36" ry="5" fill="#0a3b1c1f"/>
+      <path d="M26 52 L10 45 L15 57 L9 66 Z" fill="#8bc746" stroke="#4d3116" stroke-width="3.4" stroke-linejoin="round"/>
+      <g id="legC"><rect x="24" y="64" width="21" height="16" rx="7.5" fill="#8bc746" stroke="#4d3116" stroke-width="3.4"/></g>
+      <g id="legD"><rect x="68" y="64" width="21" height="16" rx="7.5" fill="#8bc746" stroke="#4d3116" stroke-width="3.4"/></g>
+      <ellipse cx="54" cy="48" rx="39" ry="29" fill="#a5703c" stroke="#4d3116" stroke-width="4"/>
+      <path d="M16 50 a39 29 0 0 0 76 0 a39 29 0 0 1 -76 0 Z" fill="#7d5127" opacity=".45"/>
+      <g fill="none" stroke="#4d3116" stroke-width="2.8" opacity=".85">
+        <path d="M54 20 L54 76"/><path d="M33 25 L40 73"/><path d="M75 25 L68 73"/>
+        <path d="M17 39 q37 8 74 0"/><path d="M17 58 q37 -8 74 0"/>
+      </g>
+      <ellipse cx="43" cy="31" rx="14" ry="7" fill="#fff" opacity=".24" transform="rotate(-17 43 31)"/>
+      <g id="legA"><rect x="34" y="71" width="21" height="16" rx="7.5" fill="#a8dd5e" stroke="#4d3116" stroke-width="3.4"/></g>
+      <g id="legB"><rect x="60" y="71" width="21" height="16" rx="7.5" fill="#a8dd5e" stroke="#4d3116" stroke-width="3.4"/></g>
+      <ellipse cx="96" cy="44" rx="24" ry="22" fill="#a8dd5e" stroke="#4d3116" stroke-width="4"/>
+      <ellipse cx="96" cy="53" rx="13" ry="9" fill="#c6ec86" opacity=".7"/>
+      <g id="eyesNormal">
+        <ellipse cx="90" cy="38" rx="8.8" ry="9.8" fill="#fff" stroke="#4d3116" stroke-width="2.2"/>
+        <ellipse cx="108" cy="39" rx="7.4" ry="8.4" fill="#fff" stroke="#4d3116" stroke-width="2.2"/>
+        <circle cx="92.4" cy="40" r="4.6" fill="#1d2c16"/>
+        <circle cx="110" cy="40.6" r="4" fill="#1d2c16"/>
+        <circle cx="90.4" cy="37.2" r="1.9" fill="#fff"/>
+        <circle cx="108.2" cy="38" r="1.6" fill="#fff"/>
+        <path d="M94 51 q7 6 14 -1" stroke="#4d3116" stroke-width="3" fill="none" stroke-linecap="round"/>
+      </g>
+      <g id="eyesHurt" stroke="#4d3116" stroke-width="3.2" fill="none" stroke-linecap="round">
+        <path d="M84 33 l9 6 l-9 6"/>
+        <path d="M114 33 l-9 6 l9 6"/>
+        <path d="M95 53 q6 -6 12 0" stroke-width="3"/>
+      </g>
+      <ellipse cx="81" cy="50" rx="6" ry="4" fill="#ff9c9c" opacity=".45"/>
+    </svg>
+  </div>
+  <div id="eatPop"></div>
+  <div id="dangerFlash"></div>
+  <div id="ground"></div>
+  <div id="touchPad">
+    <button class="pad" id="padLeft">◀</button>
+    <button class="pad" id="padRight">▶</button>
+  </div>
+</div>
+
+<script>
+/* ===== 브라우저에 따라 localStorage 접근이 막힐 수 있어서 안전 저장소로 감쌈 ===== */
+var LS=null, MEM={};
+try{ localStorage.setItem("__t","1"); localStorage.removeItem("__t"); LS=localStorage; }catch(e){ LS=null; }
+function sGet(k){ try{ return LS ? LS.getItem(k) : (k in MEM ? MEM[k] : null); }catch(e){ return (k in MEM)?MEM[k]:null; } }
+function sSet(k,v){ try{ if(LS){LS.setItem(k,v);} else {MEM[k]=v;} }catch(e){ MEM[k]=v; } }
+window.addEventListener("error",function(ev){
+  var d=document.getElementById("errBar");
+  if(d){ d.style.display="block"; d.textContent="⚠️ "+(ev.message||"오류")+" ("+(ev.lineno||"?")+"행)"; }
+});
+</script>
+<script>
+/* ============================================================
+   여기에 파이어베이스 콘솔에서 복사한 설정값을 붙여넣으세요.
+   (파이어베이스 콘솔 → 프로젝트 설정 → 내 앱 → </> 웹앱의 config)
+   설정하지 않고 그대로 두면, 랭킹은 각자 기기에만 저장됩니다.
+   ============================================================ */
+const firebaseConfig = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
+  projectId: "PASTE_YOUR_PROJECT_ID",
+  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+  messagingSenderId: "PASTE_YOUR_SENDER_ID",
+  appId: "PASTE_YOUR_APP_ID"
+};
+</script>
+<script>
+const game=document.getElementById("game"), player=document.getElementById("player"), turtle=document.getElementById("turtle");
+const scoreEl=document.getElementById("score"), livesEl=document.getElementById("lives");
+const nickInput=document.getElementById("nicknameInput"), nameError=document.getElementById("nameError"), nameLocked=document.getElementById("nameLocked");
+let score=0,lives=3,difficulty="normal",running=false,playerY=92,vy=0;
+let objects=[],spawnTimer,loopTimer,jumpsLeft=2,playerName="";
+let playerX=90, moveLeft=false, moveRight=false, hurtTimer=null;
+let stage=1, cleared=false;
+const MOVE_SPEED=7;
+const settings={
+ easy:{plastic:.03,bomb:.20,kit:.05,spawn:1050,speed:5.2,goals:[100,250,450,700,1000]},
+ normal:{plastic:.06,bomb:.47,kit:.025,spawn:850,speed:6.2,goals:[100,250,400,600,850]},
+ hard:{plastic:.12,bomb:.66,kit:.012,spawn:680,speed:7.2,goals:[80,180,300,440,600]}
+};
+/* 스테이지가 올라갈수록 빨라짐 */
+function curSpeed(){return settings[difficulty].speed+(stage-1)*1.2}
+function curSpawn(){return Math.round(settings[difficulty].spawn*Math.pow(.82,stage-1))}
+function stageGoal(){return settings[difficulty].goals[stage-1]}
+
+/* ---------- 닉네임 ---------- */
+function showNameError(msg){nameError.textContent=msg;nameError.style.display="block"}
+function hideNameError(){nameError.style.display="none"}
+function checkName(){
+ const v=nickInput.value;
+ if(v===""){hideNameError();return}
+ if(!/^[A-Za-z0-9]*$/.test(v)) showNameError("영어로 입력하세요 (영어·숫자만 가능)");
+ else hideNameError();
+}
+nickInput.addEventListener("input",checkName);
+nickInput.addEventListener("compositionstart",function(){showNameError("영어로 입력하세요 (영어·숫자만 가능)")});
+nickInput.addEventListener("compositionupdate",function(){showNameError("영어로 입력하세요 (영어·숫자만 가능)")});
+
+function prefillName(){
+ const saved=sGet("turtleNickname");
+ if(saved){
+  nickInput.value=saved;
+  playerName=saved;
+  nameLocked.style.display="block";
+  hideNameError();
+ }
+}
+/* 이름칸을 누르면 전체 선택 → 다음 사람이 바로 자기 이름 입력 */
+nickInput.addEventListener("focus",function(){nickInput.select()});
+
+/* ---------- 게임 ---------- */
+function startGame(level){
+ const name=nickInput.value.trim();
+ if(name===""){showNameError("닉네임을 입력하세요 (영어·숫자만 가능)");nickInput.focus();return}
+ if(!/^[A-Za-z0-9]+$/.test(name)){showNameError("영어로 입력하세요 (영어·숫자만 가능)");nickInput.focus();return}
+ if(DB){
+   showNameError("닉네임 확인 중...");
+   claimName(name).then(function(ok){
+     if(!ok){showNameError("이미 다른 친구가 쓰는 닉네임이에요");nickInput.focus();return}
+     hideNameError();beginGame(level,name);
+   });
+   return;
+ }
+ beginGame(level,name);
+}
+function beginGame(level,name){
+ playerName=name;
+ sSet("turtleNickname",name);
+ hideNameError();
+ nickInput.blur();
+ difficulty=level;score=0;lives=3;vy=0;playerY=92;jumpsLeft=2;
+ stage=1;cleared=false;
+ playerX=90;moveLeft=false;moveRight=false;
+ player.style.left=playerX+"px";turtle.setAttribute("class","");
+ scoreEl.textContent=0;updateLives();updateStageHud();clearObjects();
+ document.getElementById("startScreen").style.display="none";
+ document.getElementById("gameOverScreen").style.display="none";
+ document.getElementById("touchPad").style.display="flex";
+ player.style.bottom=playerY+"px";running=true;
+ spawnTimer=setInterval(createObject,curSpawn());
+ loopTimer=setInterval(loop,20);
+ showBanner("STAGE 1");
+}
+function updateStageHud(){
+ document.getElementById("stageLabel").textContent=stage+"/5";
+ const goal=stageGoal();
+ const prev=stage===1?0:settings[difficulty].goals[stage-2];
+ const pct=Math.max(0,Math.min(100,(score-prev)/(goal-prev)*100));
+ document.getElementById("goalFill").style.width=pct+"%";
+}
+let bannerTimer;
+function showBanner(text){
+ const b=document.getElementById("stageBanner");
+ b.textContent=text;b.style.display="block";
+ clearTimeout(bannerTimer);
+ bannerTimer=setTimeout(function(){b.style.display="none"},1200);
+}
+function checkStage(){
+ if(score<stageGoal())return;
+ if(stage>=5){gameClear();return}
+ stage++;
+ clearInterval(spawnTimer);
+ spawnTimer=setInterval(createObject,curSpawn());
+ showBanner("STAGE "+stage+" 🔥");
+ updateStageHud();
+}
+function gameClear(){
+ cleared=true;running=false;moveLeft=false;moveRight=false;
+ clearInterval(spawnTimer);clearInterval(loopTimer);clearObjects();
+ document.getElementById("touchPad").style.display="none";
+ document.getElementById("endTitle").textContent="🎉 클리어!";
+ document.getElementById("finalScore").textContent="5스테이지 완주! 점수: "+score+"점";
+ document.getElementById("recordQuestion").textContent="이 점수를 랭킹에 기록할까요?";
+ document.getElementById("recordQuestion").style.display="block";
+ document.querySelector("#gameOverScreen .buttons").style.display="flex";
+ document.getElementById("gameOverScreen").style.display="flex";
+}
+function jump(){
+ if(!running)return;
+ if(jumpsLeft>0){vy=14.5;jumpsLeft--}
+}
+
+function isUiTarget(t){
+ return t.closest("button")||t.closest("input")||t.closest("#startScreen")||t.closest("#gameOverScreen")||t.closest("#touchPad");
+}
+game.addEventListener("touchstart",function(e){
+ if(isUiTarget(e.target)) return;
+ e.preventDefault();
+ jump();
+},{passive:false});
+game.addEventListener("click",function(e){
+ if(isUiTarget(e.target)) return;
+ jump();
+});
+
+document.addEventListener("keydown",function(e){
+ if(document.activeElement===nickInput) return;
+ if(e.code==="Space"||e.code==="ArrowUp"||e.code==="KeyW"){e.preventDefault();jump();return}
+ if(e.code==="ArrowRight"||e.code==="KeyD"){e.preventDefault();moveRight=true;turtle.classList.remove("flip");return}
+ if(e.code==="ArrowLeft"||e.code==="KeyA"){e.preventDefault();moveLeft=true;turtle.classList.add("flip");return}
+});
+document.addEventListener("keyup",function(e){
+ if(e.code==="ArrowRight"||e.code==="KeyD")moveRight=false;
+ if(e.code==="ArrowLeft"||e.code==="KeyA")moveLeft=false;
+});
+
+/* 모바일용 좌우 버튼 */
+function bindPad(id,setter){
+ const el=document.getElementById(id);
+ const on=function(e){e.preventDefault();setter(true)};
+ const off=function(e){e.preventDefault();setter(false)};
+ el.addEventListener("touchstart",on,{passive:false});
+ el.addEventListener("touchend",off,{passive:false});
+ el.addEventListener("touchcancel",off,{passive:false});
+ el.addEventListener("mousedown",on);
+ el.addEventListener("mouseup",off);
+ el.addEventListener("mouseleave",off);
+}
+bindPad("padLeft",function(v){moveLeft=v;if(v)turtle.classList.add("flip")});
+bindPad("padRight",function(v){moveRight=v;if(v)turtle.classList.remove("flip")});
+
+
+/* 거북이 동작 상태 */
+function setTurtleState(){
+ const onGround = playerY<=92.5;
+ turtle.classList.toggle("jump", !onGround && vy>0);
+ turtle.classList.toggle("fall", !onGround && vy<=0);
+ turtle.classList.toggle("run", onGround && (moveLeft||moveRight));
+}
+function hurtFace(){
+ turtle.classList.remove("hurt");
+ void turtle.offsetWidth;
+ turtle.classList.add("hurt");
+ clearTimeout(hurtTimer);
+ hurtTimer=setTimeout(function(){turtle.classList.remove("hurt")},800);
+}
+function createObject(){
+ if(!running)return;
+ const st=settings[difficulty], r=Math.random();
+ let type="jelly";
+ if(r<st.plastic) type="plastic";
+ else if(r<st.plastic+st.bomb) type="bomb";
+ else if(r<st.plastic+st.bomb+st.kit) type="kit";
+ const FACE={jelly:"🪼",bomb:"💣"};
+ const PLASTIC_SVG='<svg viewBox="0 0 45 45" width="34" height="34"><path d="M13 16 L11 40 Q11 42 13 42 L32 42 Q34 42 34 40 L32 16 Z" fill="#ffffff" fill-opacity=".92" stroke="#c9d3d6" stroke-width="1.6"/><path d="M17 16 L17 12 Q17 7 22.5 7 Q28 7 28 12 L28 16" fill="none" stroke="#c9d3d6" stroke-width="2.2" stroke-linecap="round"/><path d="M15 21 L16 37 M22.5 20 L22.5 38 M30 21 L29 37" stroke="#dfe6e8" stroke-width="1.3" fill="none"/></svg>';
+ const KIT_SVG='<svg viewBox="0 0 45 45" width="34" height="34"><rect x="5" y="12" width="35" height="26" rx="5" fill="#fff" stroke="#d6433c" stroke-width="2.6"/><rect x="5" y="12" width="35" height="7" rx="3" fill="#d6433c"/><path d="M14 9 Q14 4 22.5 4 Q31 4 31 9 L31 13 L14 13 Z" fill="none" stroke="#a83029" stroke-width="2.4"/><rect x="19.5" y="19" width="6" height="16" rx="1.5" fill="#d6433c"/><rect x="14.5" y="24" width="16" height="6" rx="1.5" fill="#d6433c"/></svg>';
+ const el=document.createElement("div");
+ el.className="object "+type;el.dataset.type=type;
+ if(type==="plastic"){el.innerHTML=PLASTIC_SVG;}
+ else if(type==="kit"){el.innerHTML=KIT_SVG;}
+ else{el.textContent=FACE[type];}
+ const bottom=108+Math.random()*55;
+ el.style.left=game.clientWidth+"px";el.style.bottom=bottom+"px";game.appendChild(el);
+ objects.push({el,x:game.clientWidth,bottom,type:el.dataset.type});
+}
+function loop(){
+ if(!running)return;
+ /* 좌우 이동 */
+ if(moveRight)playerX+=MOVE_SPEED;
+ if(moveLeft)playerX-=MOVE_SPEED;
+ const maxX=game.clientWidth-74;
+ if(playerX<6)playerX=6;
+ if(playerX>maxX)playerX=maxX;
+ player.style.left=playerX+"px";
+ /* 점프 */
+ vy-=.75;playerY+=vy;
+ if(playerY<=92){playerY=92;vy=0;jumpsLeft=2}
+ player.style.bottom=playerY+"px";
+ setTurtleState();
+ for(let i=objects.length-1;i>=0;i--){
+  const o=objects[i];o.x-=curSpeed();o.el.style.left=o.x+"px";
+  if(collide(player,o.el,o.type)){
+   if(o.type==="jelly"){
+    score+=10;scoreEl.textContent=score;eatPop(o.x,o.bottom+46,"+10","#fff");removeObject(i);
+    updateStageHud();checkStage();
+    if(!running)return;
+    continue;
+   }
+   else if(o.type==="kit"){
+    if(lives<3){
+     lives=Math.min(3,lives+1);
+     updateLives();
+    }
+    removeObject(i);
+    continue;
+   }
+   else{
+    const dmg = o.type==="plastic" ? 2 : 1;
+    lives=Math.max(0,lives-dmg);
+    updateLives();hurtFace();
+    if(o.type==="plastic"){
+     flashDanger();
+    }
+    if(lives<=0){removeObject(i);gameOver();return}
+   }
+   removeObject(i);
+  }else if(o.x<-60)removeObject(i);
+ }
+}
+/* 스프라이트 상자 그대로 쓰면 거북이가 너무 크게 잡혀서 폭탄에 억울하게 맞음.
+   → 해파리는 넉넉한 상자, 폭탄은 몸통 중심의 작은 상자로 따로 판정 */
+function box(el,l,r,t,b){
+ const c=el.getBoundingClientRect();
+ return {l:c.left+c.width*l, r:c.right-c.width*r, t:c.top+c.height*t, b:c.bottom-c.height*b};
+}
+function overlap(A,B){return !(A.r<B.l||A.l>B.r||A.b<B.t||A.t>B.b)}
+function collide(playerEl,objEl,type){
+ if(type==="jelly"||type==="kit"){
+  return overlap(box(playerEl,.06,.04,.12,.04), box(objEl,.12,.12,.12,.12));
+ }
+ /* 폭탄·비닐은 몸통 한가운데로만 판정 (비닐은 조금 더 작게) */
+ const oi = type==="plastic" ? .30 : .24;
+ return overlap(box(playerEl,.26,.20,.34,.14), box(objEl,oi,oi,oi,oi));
+}
+let popTimer, flashTimer;
+function flashDanger(){
+ const f=document.getElementById("dangerFlash");
+ f.style.opacity=".95";
+ clearTimeout(flashTimer);
+ flashTimer=setTimeout(function(){f.style.opacity="0"},220);
+}
+function eatPop(x,y,text,color){
+ const el=document.getElementById("eatPop");
+ el.textContent=text||"+10";
+ el.style.color=color||"#fff";
+ el.style.left=x+"px";el.style.bottom=y+"px";el.style.display="block";
+ clearTimeout(popTimer);
+ popTimer=setTimeout(function(){el.style.display="none"},420);
+}
+function removeObject(i){objects[i].el.remove();objects.splice(i,1)}
+function clearObjects(){objects.forEach(o=>o.el.remove());objects=[]}
+function updateLives(){const n=Math.max(0,Math.min(3,lives));livesEl.textContent="❤️".repeat(n)+"🖤".repeat(3-n)}
+function gameOver(){
+ running=false;moveLeft=false;moveRight=false;turtle.classList.remove("run","jump","fall");
+ clearInterval(spawnTimer);clearInterval(loopTimer);
+ document.getElementById("touchPad").style.display="none";
+ document.getElementById("stageBanner").style.display="none";
+ document.getElementById("endTitle").textContent="게임 끝! 💥";
+ document.getElementById("finalScore").textContent="STAGE "+stage+" / 점수: "+score+"점";
+ document.getElementById("recordQuestion").textContent="이 점수를 랭킹에 기록할까요?";
+ document.getElementById("recordQuestion").style.display="block";
+ document.querySelector("#gameOverScreen .buttons").style.display="flex";
+ document.getElementById("gameOverScreen").style.display="flex";
+}
+function recordYes(){
+ saveRanking();
+ document.getElementById("recordQuestion").textContent="랭킹에 기록했어요! 🏆";
+ document.querySelector("#gameOverScreen .buttons").style.display="none";
+}
+function recordNo(){
+ document.getElementById("recordQuestion").textContent="이번 기록은 저장하지 않았어요.";
+ document.querySelector("#gameOverScreen .buttons").style.display="none";
+}
+function restartGame(){
+ document.getElementById("gameOverScreen").style.display="none";
+ document.getElementById("recordQuestion").style.display="block";
+ document.querySelector("#gameOverScreen .buttons").style.display="flex";
+ startGame(difficulty);
+}
+function stopGame(){
+ running=false;moveLeft=false;moveRight=false;
+ clearInterval(spawnTimer);clearInterval(loopTimer);clearObjects();
+ document.getElementById("touchPad").style.display="none";
+ document.getElementById("stageBanner").style.display="none";
+ document.getElementById("gameOverScreen").style.display="none";
+ document.getElementById("startScreen").style.display="flex";
+}
+function saveRanking(){
+ const key="rank_"+difficulty;
+ const name=playerName||sGet("turtleNickname")||"Player";
+ if(DB){
+  const ref=DB.collection("ranks/"+difficulty+"/players").doc(nameKey(name));
+  ref.get().then(function(sn){
+   if(!sn.exists||(sn.data().score||0)<score){
+    return ref.set({name:name,score:score,ts:Date.now(),owner:MYID||null});
+   }
+  }).catch(function(){});
+  return;
+ }
+ let r=JSON.parse(sGet(key)||"[]");
+ const existing=r.find(x=>String(x.name).toLowerCase()===String(name).toLowerCase());
+ if(existing){if(score>existing.score){existing.score=score;existing.name=name}}
+ else{r.push({name,score})}
+ r.sort((a,b)=>b.score-a.score);
+ sSet(key,JSON.stringify(r.slice(0,3)));
+ updateRanking();
+}
+function updateRanking(){
+ for(const level of ["easy","normal","hard"]){
+  const r=JSON.parse(sGet("rank_"+level)||"[]");
+  document.getElementById(level+"Rank").innerHTML=[0,1,2].map(i=>
+   r[i] ? (i+1)+". "+r[i].name+" "+r[i].score+"점" : (i+1)+". -"
+  ).join("<br>");
+ }
+}
+
+/* --- 모바일 탭 처리: 키보드가 올라와 있어도 첫 탭이 먹히게 --- */
+const ACTS={
+ easy:function(){startGame("easy")}, normal:function(){startGame("normal")}, hard:function(){startGame("hard")},
+ yes:recordYes, no:recordNo, restart:restartGame, stop:stopGame
+};
+function bindTap(el){
+ const act=el.dataset.act;
+ let justTouched=false;
+ el.addEventListener("touchend",function(e){
+   e.preventDefault();e.stopPropagation();
+   justTouched=true;setTimeout(function(){justTouched=false},700);
+   if(document.activeElement&&document.activeElement.blur)document.activeElement.blur();
+   ACTS[act]();
+ },{passive:false});
+ el.addEventListener("click",function(e){
+   e.stopPropagation();
+   if(justTouched)return;
+   ACTS[act]();
+ });
+}
+document.querySelectorAll("[data-act]").forEach(bindTap);
+
+/* ============================================================
+   친구들과 공유하는 랭킹 (파이어베이스 Firestore)
+   firebaseConfig 를 채워 넣지 않았으면 자동으로 "각자 기기 저장" 모드로 동작합니다.
+   ============================================================ */
+var DB=null, MYID=null;
+function renderCloudRank(level,snap){
+ var out=[];
+ for(var i=0;i<3;i++){
+  var d=snap.docs[i];
+  out.push(d ? (i+1)+". "+((d.data().name||d.id)+" "+d.data().score+"점") : (i+1)+". -");
+ }
+ document.getElementById(level+"Rank").innerHTML=out.join("<br>");
+}
+function subscribeRanks(){
+ ["easy","normal","hard"].forEach(function(level){
+  try{
+   DB.collection("ranks/"+level+"/players").orderBy("score","desc").limit(3)
+     .onSnapshot(function(snap){renderCloudRank(level,snap)},function(){});
+  }catch(e){}
+ });
+ document.getElementById("rankMode").style.display="block";
+}
+function nameKey(n){return String(n).toLowerCase()}
+function claimName(name){
+ var ref;
+ try{ ref=DB.doc("names/"+nameKey(name)); }catch(e){ return Promise.resolve(true); }
+ return ref.get().then(function(sn){
+  if(sn.exists){
+   var d=sn.data()||{};
+   return !(d.owner&&d.owner!==MYID);
+  }
+  return ref.set({owner:MYID,name:name,key:nameKey(name)}).then(function(){return true},function(){return true});
+ }).catch(function(){return true});
+}
+(function initCloud(){
+ if(!firebaseConfig.apiKey || firebaseConfig.apiKey.indexOf("PASTE_")===0) return; // 설정 안 됨 → 로컬 모드
+ if(typeof firebase==="undefined") return; // SDK 로드 실패 → 로컬 모드
+ try{
+  firebase.initializeApp(firebaseConfig);
+  DB=firebase.firestore();
+  MYID=sGet("turtleDeviceId");
+  if(!MYID){ MYID="dev-"+Math.random().toString(36).slice(2,10); sSet("turtleDeviceId",MYID); }
+  subscribeRanks();
+ }catch(e){ DB=null; }
+})();
+
+updateRanking();
+prefillName();
+if(!LS && !DB){
+ var w=document.createElement("p");
+ w.style.cssText="font-size:12px;color:#ffe56b;margin-top:10px;text-align:center";
+ w.textContent="이 브라우저에서는 기록 저장이 막혀 있어요. 게임은 되지만 랭킹은 껐다 켜면 사라져요.";
+ document.getElementById("startScreen").appendChild(w);
+}
+</script>
+</body>
+</html>
