@@ -65,8 +65,6 @@ h1{font-size:40px;margin-bottom:9px;display:flex;align-items:center;justify-cont
 #goalFill{height:100%;width:0%;background:#0fa3c9;border-radius:9px;transition:width .2s}
 #touchPad{position:absolute;left:0;bottom:0;width:100%;height:95px;z-index:40;display:none;justify-content:space-between;align-items:center;padding:0 14px;pointer-events:none}
 #touchPad .pad{pointer-events:auto;width:62px;height:62px;border-radius:50%;background:#ffffffb3;color:#12657a;font-size:26px;font-weight:bold;display:flex;align-items:center;justify-content:center;border:0}
-#fullRankBtn{margin-top:14px;background:transparent;border:1px solid #fff;color:#fff;padding:9px 18px;min-height:auto;font-size:13px;border-radius:20px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
-#fullRankBtn:active{background:#ffffff33}
 #fullRankScreen{display:none;position:absolute;inset:0;z-index:110;background:#0d4a5eef;color:#fff;flex-direction:column;align-items:center;padding:24px 14px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 #fullRankScreen h2{font-size:24px;margin-bottom:14px}
 #rankTabs{margin-bottom:16px}
@@ -80,18 +78,28 @@ h1{font-size:40px;margin-bottom:9px;display:flex;align-items:center;justify-cont
   <div id="errBar" style="display:none;position:absolute;left:0;top:0;width:100%;z-index:200;background:#c62828;color:#fff;font-size:12px;padding:6px 10px;text-align:center"></div>
   <div id="startScreen">
     <h1><svg class="icon-turtle" viewBox="0 0 126 100"><path d="M26 52 L10 45 L15 57 L9 66 Z" fill="#8bc746" stroke="#4d3116" stroke-width="4"/><rect x="24" y="64" width="21" height="16" rx="7.5" fill="#8bc746" stroke="#4d3116" stroke-width="4"/><rect x="68" y="64" width="21" height="16" rx="7.5" fill="#8bc746" stroke="#4d3116" stroke-width="4"/><ellipse cx="54" cy="48" rx="39" ry="29" fill="#a5703c" stroke="#4d3116" stroke-width="4.5"/><path d="M16 50 a39 29 0 0 0 76 0 a39 29 0 0 1 -76 0 Z" fill="#7d5127" opacity=".45"/><g fill="none" stroke="#4d3116" stroke-width="3" opacity=".85"><path d="M54 20 L54 76"/><path d="M33 25 L40 73"/><path d="M75 25 L68 73"/><path d="M17 39 q37 8 74 0"/><path d="M17 58 q37 -8 74 0"/></g><rect x="34" y="71" width="21" height="16" rx="7.5" fill="#a8dd5e" stroke="#4d3116" stroke-width="4"/><rect x="60" y="71" width="21" height="16" rx="7.5" fill="#a8dd5e" stroke="#4d3116" stroke-width="4"/><ellipse cx="96" cy="44" rx="24" ry="22" fill="#a8dd5e" stroke="#4d3116" stroke-width="4.5"/><ellipse cx="96" cy="53" rx="13" ry="9" fill="#c6ec86" opacity=".7"/><ellipse cx="90" cy="38" rx="8.8" ry="9.8" fill="#fff" stroke="#4d3116" stroke-width="2.4"/><ellipse cx="108" cy="39" rx="7.4" ry="8.4" fill="#fff" stroke="#4d3116" stroke-width="2.4"/><circle cx="92.4" cy="40" r="4.6" fill="#1d2c16"/><circle cx="110" cy="40.6" r="4" fill="#1d2c16"/><circle cx="90.4" cy="37.2" r="1.9" fill="#fff"/><circle cx="108.2" cy="38" r="1.6" fill="#fff"/><path d="M94 51 q7 6 14 -1" stroke="#4d3116" stroke-width="3.2" fill="none" stroke-linecap="round"/></svg> 거북이 무한 점프</h1>
-    <p class="desc">닉네임을 영어로 입력하세요.<br>← → 로 이동, ↑ 또는 Space 로 점프!<br><span style="font-size:12px;opacity:.85">거북이는 진짜로 해파리를 먹어요.<br><svg class="icon-bag" viewBox="0 0 45 45"><path d="M13 16 L11 40 Q11 42 13 42 L32 42 Q34 42 34 40 L32 16 Z" fill="#ffffff" fill-opacity=".95" stroke="#e8eef0" stroke-width="1.6"/><path d="M17 16 L17 12 Q17 7 22.5 7 Q28 7 28 12 L28 16" fill="none" stroke="#e8eef0" stroke-width="2.2" stroke-linecap="round"/><path d="M15 21 L16 37 M22.5 20 L22.5 38 M30 21 L29 37" stroke="#d5dee0" stroke-width="1.3" fill="none"/></svg> 비닐봉지는 해파리처럼 보여서 거북이가 잘못 삼켜요. 먹으면 ❤️ 2개!<br>🩹 구급상자를 먹으면 ❤️ 1개가 채워져요.</span></p>
+    <p class="desc">닉네임을 영어로 입력하세요.<br>← → 로 이동, ↑ 또는 Space 로 점프!<br><span style="font-size:12px;opacity:.85">거북이는 진짜로 해파리를 먹어요.<br>비닐봉지는 해파리처럼 보여서 거북이가 착각하고 먹을 수 있어요.<br><svg class="icon-bag" viewBox="0 0 45 45"><path d="M13 16 L11 40 Q11 42 13 42 L32 42 Q34 42 34 40 L32 16 Z" fill="#ffffff" fill-opacity=".95" stroke="#e8eef0" stroke-width="1.6"/><path d="M17 16 L17 12 Q17 7 22.5 7 Q28 7 28 12 L28 16" fill="none" stroke="#e8eef0" stroke-width="2.2" stroke-linecap="round"/><path d="M15 21 L16 37 M22.5 20 L22.5 38 M30 21 L29 37" stroke="#d5dee0" stroke-width="1.3" fill="none"/></svg> 비닐봉지 먹으면 ❤️-2개!<br>🩹 구급상자를 먹으면 ❤️ 1개가 채워져요.</span></p>
     <div id="nameRow">
       <input id="nicknameInput" maxlength="12" placeholder="Nickname" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="latin">
       <p id="nameError">영어로 입력하세요 (영어·숫자만 가능)</p>
       <p id="nameLocked">다른 사람이 하려면 이름을 지우고 새로 입력하세요 ✏️ (대문자·소문자는 같은 이름으로 쳐요)</p>
     </div>
-    <div class="buttons">
+    <div id="nameConfirm" style="display:none;text-align:center;margin-bottom:14px">
+      <p style="font-size:13px;color:#ffe56b;margin-bottom:10px">⚠️ 이미 사용중인 닉네임이에요.<br>계속 하시겠어요?</p>
+      <div class="buttons" style="justify-content:center">
+        <button data-act="confirmYes">네, 계속</button>
+        <button data-act="confirmNo">아니요</button>
+      </div>
+    </div>
+    <div class="buttons" id="difficultyButtons">
       <button data-act="easy">🌱 쉬움</button>
       <button data-act="normal">🌊 보통</button>
       <button data-act="hard">🔥 어려움</button>
     </div>
-    <button id="fullRankBtn" data-act="fullrank">🏆 전체 순위 보기</button>
+    <div class="buttons" id="fullRankRow" style="margin-top:10px">
+      <button id="fullRankBtn" data-act="fullrank">🏆 전체 순위 보기</button>
+    </div>
+    <p style="font-size:11px;opacity:.7;margin-top:16px">🐢 John(지훈)이가 만들었어요</p>
   </div>
 
   <div id="fullRankScreen">
@@ -226,6 +234,7 @@ function checkName(){
  else hideNameError();
 }
 nickInput.addEventListener("input",checkName);
+nickInput.addEventListener("input",function(){if(pendingStart)hideNameConfirmUI()});
 nickInput.addEventListener("compositionstart",function(){showNameError("영어로 입력하세요 (영어·숫자만 가능)")});
 nickInput.addEventListener("compositionupdate",function(){showNameError("영어로 입력하세요 (영어·숫자만 가능)")});
 
@@ -242,15 +251,32 @@ function prefillName(){
 nickInput.addEventListener("focus",function(){nickInput.select()});
 
 /* ---------- 게임 ---------- */
+let pendingStart=null;
+function showNameConfirm(level,name){
+ pendingStart={level:level,name:name};
+ hideNameError();
+ document.getElementById("nameConfirm").style.display="block";
+ document.getElementById("difficultyButtons").style.display="none";
+ document.getElementById("fullRankRow").style.display="none";
+}
+function hideNameConfirmUI(){
+ pendingStart=null;
+ document.getElementById("nameConfirm").style.display="none";
+ document.getElementById("difficultyButtons").style.display="";
+ document.getElementById("fullRankRow").style.display="";
+}
 function startGame(level){
  const name=nickInput.value.trim();
  if(name===""){showNameError("닉네임을 입력하세요 (영어·숫자만 가능)");nickInput.focus();return}
  if(!/^[A-Za-z0-9]+$/.test(name)){showNameError("영어로 입력하세요 (영어·숫자만 가능)");nickInput.focus();return}
  if(DB){
    showNameError("닉네임 확인 중...");
-   claimName(name).then(function(ok){
-     if(!ok){showNameError("이미 다른 친구가 쓰는 닉네임이에요");nickInput.focus();return}
-     hideNameError();beginGame(level,name);
+   checkNameUsage(name).then(function(usedByOther){
+     if(usedByOther){
+      showNameConfirm(level,name);
+     }else{
+      hideNameError();claimNameSilently(name);beginGame(level,name);
+     }
    });
    return;
  }
@@ -568,7 +594,19 @@ const ACTS={
  easy:function(){startGame("easy")}, normal:function(){startGame("normal")}, hard:function(){startGame("hard")},
  yes:recordYes, no:recordNo, restart:restartGame, stop:stopGame,
  fullrank:openFullRank, closeRank:closeFullRank,
- rtabEasy:function(){setFullRankTab("easy")}, rtabNormal:function(){setFullRankTab("normal")}, rtabHard:function(){setFullRankTab("hard")}
+ rtabEasy:function(){setFullRankTab("easy")}, rtabNormal:function(){setFullRankTab("normal")}, rtabHard:function(){setFullRankTab("hard")},
+ confirmYes:function(){
+  if(!pendingStart)return;
+  const p=pendingStart;
+  hideNameConfirmUI();
+  claimNameSilently(p.name);
+  beginGame(p.level,p.name);
+ },
+ confirmNo:function(){
+  hideNameConfirmUI();
+  nickInput.value="";
+  nickInput.focus();
+ }
 };
 function bindTap(el){
  const act=el.dataset.act;
@@ -610,16 +648,22 @@ function subscribeRanks(){
  document.getElementById("rankMode").style.display="block";
 }
 function nameKey(n){return String(n).toLowerCase()}
-function claimName(name){
+/* 이름은 항상 자유롭게 쓸 수 있게 함 (기기가 초기화돼도 막히지 않도록).
+   대신 이미 다른 기기가 쓰던 이름이면 usedByOther=true 로 알려줘서 "계속 하시겠어요?" 확인만 받음.
+   실제 소유권 기록(names 문서 쓰기)은 사용자가 실제로 게임을 시작할 때만 함 */
+function checkNameUsage(name){
  var ref;
- try{ ref=DB.doc("names/"+nameKey(name)); }catch(e){ return Promise.resolve(true); }
+ try{ ref=DB.doc("names/"+nameKey(name)); }catch(e){ return Promise.resolve(false); }
  return ref.get().then(function(sn){
   if(sn.exists){
    var d=sn.data()||{};
-   return !(d.owner&&d.owner!==MYID);
+   return !!(d.owner&&d.owner!==MYID);
   }
-  return ref.set({owner:MYID,name:name,key:nameKey(name)}).then(function(){return true},function(){return true});
- }).catch(function(){return true});
+  return false;
+ }).catch(function(){return false});
+}
+function claimNameSilently(name){
+ try{ DB.doc("names/"+nameKey(name)).set({owner:MYID,name:name,key:nameKey(name)}).catch(function(){}); }catch(e){}
 }
 (function initCloud(){
  if(!firebaseConfig.apiKey || firebaseConfig.apiKey.indexOf("PASTE_")===0) return; // 설정 안 됨 → 로컬 모드
