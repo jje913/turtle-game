@@ -56,7 +56,7 @@ h1{font-size:40px;margin-bottom:9px;display:flex;align-items:center;justify-cont
 #nicknameInput{padding:12px 14px;border:0;border-radius:12px;text-align:center;font-size:17px;width:210px;text-transform:none;color:#12657a}
 #nicknameInput[readonly]{background:#dbe9ee;color:#5b7a85}
 #nameError{display:none;font-size:12px;color:#ff4d4d;font-weight:bold;margin-top:8px;text-shadow:0 1px 2px #0006}
-#nameLocked{display:none;font-size:12px;color:#d8f3ff;margin-top:8px}
+#nameError.big{font-size:15px;color:#fff;background:#e74c3c;padding:9px 14px;border-radius:12px;text-shadow:none;line-height:1.4;display:inline-block!important}
 .buttons{display:flex;gap:10px}.buttons button,#gameOverScreen button{border:0;border-radius:14px;padding:15px 20px;min-height:52px;background:white;color:#12657a;font-size:17px;font-weight:bold;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .buttons button:active,#gameOverScreen button:active{background:#d7f2fb;transform:scale(.96)}
 #gameOverScreen h2{font-size:34px;margin-bottom:12px}#finalScore{font-size:22px;margin-bottom:22px}
@@ -82,14 +82,6 @@ h1{font-size:40px;margin-bottom:9px;display:flex;align-items:center;justify-cont
     <div id="nameRow">
       <input id="nicknameInput" maxlength="12" placeholder="Nickname" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" inputmode="latin">
       <p id="nameError">영어로 입력하세요 (영어·숫자만 가능)</p>
-      <p id="nameLocked">다른 사람이 하려면 이름을 지우고 새로 입력하세요 ✏️ (대문자·소문자는 같은 이름으로 쳐요)</p>
-    </div>
-    <div id="nameConfirm" style="display:none;text-align:center;margin-bottom:14px">
-      <p style="font-size:13px;color:#ffe56b;margin-bottom:10px">⚠️ 이미 사용중인 닉네임이에요.<br>계속 하시겠어요?</p>
-      <div class="buttons" style="justify-content:center">
-        <button data-act="confirmYes">네, 계속</button>
-        <button data-act="confirmNo">아니요</button>
-      </div>
     </div>
     <div class="buttons" id="difficultyButtons">
       <button data-act="easy">🌱 쉬움</button>
@@ -208,7 +200,7 @@ const firebaseConfig = {
 <script>
 const game=document.getElementById("game"), player=document.getElementById("player"), turtle=document.getElementById("turtle");
 const scoreEl=document.getElementById("score"), livesEl=document.getElementById("lives");
-const nickInput=document.getElementById("nicknameInput"), nameError=document.getElementById("nameError"), nameLocked=document.getElementById("nameLocked");
+const nickInput=document.getElementById("nicknameInput"), nameError=document.getElementById("nameError");
 let score=0,lives=3,difficulty="normal",running=false,playerY=92,vy=0;
 let objects=[],spawnTimer,loopTimer,jumpsLeft=2,playerName="";
 let playerX=90, moveLeft=false, moveRight=false, hurtTimer=null;
@@ -225,8 +217,8 @@ function curSpawn(){return Math.round(settings[difficulty].spawn*Math.pow(.82,st
 function stageGoal(){return settings[difficulty].goals[stage-1]}
 
 /* ---------- 닉네임 ---------- */
-function showNameError(msg){nameError.textContent=msg;nameError.style.display="block"}
-function hideNameError(){nameError.style.display="none"}
+function showNameError(msg,big){nameError.textContent=msg;nameError.style.display="block";nameError.classList.toggle("big",!!big)}
+function hideNameError(){nameError.style.display="none";nameError.classList.remove("big")}
 function checkName(){
  const v=nickInput.value;
  if(v===""){hideNameError();return}
@@ -234,7 +226,6 @@ function checkName(){
  else hideNameError();
 }
 nickInput.addEventListener("input",checkName);
-nickInput.addEventListener("input",function(){if(pendingStart)hideNameConfirmUI()});
 nickInput.addEventListener("compositionstart",function(){showNameError("영어로 입력하세요 (영어·숫자만 가능)")});
 nickInput.addEventListener("compositionupdate",function(){showNameError("영어로 입력하세요 (영어·숫자만 가능)")});
 
@@ -243,7 +234,6 @@ function prefillName(){
  if(saved){
   nickInput.value=saved;
   playerName=saved;
-  nameLocked.style.display="block";
   hideNameError();
  }
 }
@@ -251,20 +241,6 @@ function prefillName(){
 nickInput.addEventListener("focus",function(){nickInput.select()});
 
 /* ---------- 게임 ---------- */
-let pendingStart=null;
-function showNameConfirm(level,name){
- pendingStart={level:level,name:name};
- hideNameError();
- document.getElementById("nameConfirm").style.display="block";
- document.getElementById("difficultyButtons").style.display="none";
- document.getElementById("fullRankRow").style.display="none";
-}
-function hideNameConfirmUI(){
- pendingStart=null;
- document.getElementById("nameConfirm").style.display="none";
- document.getElementById("difficultyButtons").style.display="";
- document.getElementById("fullRankRow").style.display="";
-}
 function startGame(level){
  const name=nickInput.value.trim();
  if(name===""){showNameError("닉네임을 입력하세요 (영어·숫자만 가능)");nickInput.focus();return}
@@ -273,7 +249,9 @@ function startGame(level){
    showNameError("닉네임 확인 중...");
    checkNameUsage(name).then(function(usedByOther){
      if(usedByOther){
-      showNameConfirm(level,name);
+      showNameError("⚠️ 이미 사용중인 닉네임이에요. 다른 닉네임을 입력해주세요",true);
+      nickInput.value="";
+      nickInput.focus();
      }else{
       hideNameError();claimNameSilently(name);beginGame(level,name);
      }
@@ -524,6 +502,11 @@ function stopGame(){
  document.getElementById("gameOverScreen").style.display="none";
  document.getElementById("startScreen").style.display="flex";
 }
+/* 점수가 같으면 먼저 달성한(ts가 더 이른) 사람이 위로 오게 정렬 */
+function tieSort(a,b){
+ if(b.score!==a.score) return b.score-a.score;
+ return (a.ts||Infinity)-(b.ts||Infinity);
+}
 function saveRanking(){
  const key="rank_"+difficulty;
  const name=playerName||sGet("turtleNickname")||"Player";
@@ -538,9 +521,9 @@ function saveRanking(){
  }
  let r=JSON.parse(sGet(key)||"[]");
  const existing=r.find(x=>String(x.name).toLowerCase()===String(name).toLowerCase());
- if(existing){if(score>existing.score){existing.score=score;existing.name=name}}
- else{r.push({name,score})}
- r.sort((a,b)=>b.score-a.score);
+ if(existing){if(score>existing.score){existing.score=score;existing.name=name;existing.ts=Date.now()}}
+ else{r.push({name,score,ts:Date.now()})}
+ r.sort(tieSort);
  sSet(key,JSON.stringify(r.slice(0,50)));
  updateRanking();
 }
@@ -578,13 +561,15 @@ function loadFullRank(level){
  if(DB){
   document.getElementById("fullRankList").innerHTML="불러오는 중...";
   DB.collection("ranks/"+level+"/players").orderBy("score","desc").get().then(function(snap){
-   const arr=snap.docs.map(function(d){return {name:d.data().name||d.id,score:d.data().score||0}});
+   const arr=snap.docs.map(function(d){var v=d.data()||{};return {name:v.name||d.id,score:v.score||0,ts:v.ts}});
+   arr.sort(tieSort);
    renderFullList(level,arr);
   }).catch(function(){
    if(fullRankLevel===level) document.getElementById("fullRankList").innerHTML="불러오지 못했어요";
   });
  }else{
   const arr=JSON.parse(sGet("rank_"+level)||"[]");
+  arr.sort(tieSort);
   renderFullList(level,arr);
  }
 }
@@ -594,19 +579,7 @@ const ACTS={
  easy:function(){startGame("easy")}, normal:function(){startGame("normal")}, hard:function(){startGame("hard")},
  yes:recordYes, no:recordNo, restart:restartGame, stop:stopGame,
  fullrank:openFullRank, closeRank:closeFullRank,
- rtabEasy:function(){setFullRankTab("easy")}, rtabNormal:function(){setFullRankTab("normal")}, rtabHard:function(){setFullRankTab("hard")},
- confirmYes:function(){
-  if(!pendingStart)return;
-  const p=pendingStart;
-  hideNameConfirmUI();
-  claimNameSilently(p.name);
-  beginGame(p.level,p.name);
- },
- confirmNo:function(){
-  hideNameConfirmUI();
-  nickInput.value="";
-  nickInput.focus();
- }
+ rtabEasy:function(){setFullRankTab("easy")}, rtabNormal:function(){setFullRankTab("normal")}, rtabHard:function(){setFullRankTab("hard")}
 };
 function bindTap(el){
  const act=el.dataset.act;
@@ -631,17 +604,20 @@ document.querySelectorAll("[data-act]").forEach(bindTap);
    ============================================================ */
 var DB=null, MYID=null;
 function renderCloudRank(level,snap){
+ var arr=snap.docs.map(function(d){var v=d.data()||{};return {name:v.name||d.id,score:v.score||0,ts:v.ts}});
+ arr.sort(tieSort);
  var out=[];
  for(var i=0;i<3;i++){
-  var d=snap.docs[i];
-  out.push(d ? (i+1)+". "+((d.data().name||d.id)+" "+d.data().score+"점") : (i+1)+". -");
+  var r=arr[i];
+  out.push(r ? (i+1)+". "+(r.name+" "+r.score+"점") : (i+1)+". -");
  }
  document.getElementById(level+"Rank").innerHTML=out.join("<br>");
 }
 function subscribeRanks(){
  ["easy","normal","hard"].forEach(function(level){
   try{
-   DB.collection("ranks/"+level+"/players").orderBy("score","desc").limit(3)
+   /* 동점자 정렬을 정확히 하려고 여유 있게 15명까지 받아서 클라이언트에서 재정렬 */
+   DB.collection("ranks/"+level+"/players").orderBy("score","desc").limit(15)
      .onSnapshot(function(snap){renderCloudRank(level,snap)},function(){});
   }catch(e){}
  });
