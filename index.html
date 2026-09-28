@@ -115,7 +115,7 @@ h1{font-size:40px;margin-bottom:9px;display:flex;align-items:center;justify-cont
     </div>
   </div>
 
-  <div id="hud">⭐ <span id="score">0</span>　<span id="lives">❤️❤️❤️</span>　🚩 <span id="stageLabel">1/7</span></div>
+  <div id="hud">⭐ <span id="score">0</span>　<span id="lives">❤️❤️❤️</span>　🚩 <span id="stageLabel">1/10</span></div>
   <div id="goalBar"><div id="goalFill"></div></div>
   <div id="stageBanner"></div>
 
@@ -207,13 +207,14 @@ let playerX=90, moveLeft=false, moveRight=false, hurtTimer=null;
 let stage=1, cleared=false;
 const MOVE_SPEED=7;
 const settings={
- easy:{plastic:.03,bomb:.20,kit:.05,spawn:1050,speed:5.2,goals:[100,250,450,700,1000,1350,1750]},
- normal:{plastic:.06,bomb:.47,kit:.025,spawn:850,speed:6.2,goals:[100,250,400,600,850,1150,1500]},
- hard:{plastic:.12,bomb:.66,kit:.012,spawn:680,speed:7.2,goals:[80,180,300,440,600,780,980]}
+ easy:{plastic:.03,bomb:.20,kit:.05,spawn:1050,speed:5.2,goals:[100,250,450,700,1000,1350,1750,2200,2700,3250]},
+ normal:{plastic:.06,bomb:.47,kit:.025,spawn:850,speed:6.2,goals:[100,250,400,600,850,1150,1500,1900,2350,2850]},
+ hard:{plastic:.12,bomb:.66,kit:.012,spawn:680,speed:7.2,goals:[80,180,300,440,600,780,980,1200,1440,1700]}
 };
 /* 스테이지가 올라갈수록 빨라짐 */
 function curSpeed(){return settings[difficulty].speed+(stage-1)*1.2}
-function curSpawn(){return Math.round(settings[difficulty].spawn*Math.pow(.82,stage-1))}
+/* 스테이지가 늘어나도 스폰 간격이 너무 짧아져서 못 피할 정도로 폭주하지 않게 최소치(200ms)를 둠 */
+function curSpawn(){return Math.max(200, Math.round(settings[difficulty].spawn*Math.pow(.82,stage-1)))}
 function stageGoal(){return settings[difficulty].goals[stage-1]}
 
 /* ---------- 닉네임 ---------- */
@@ -279,7 +280,7 @@ function beginGame(level,name){
  showBanner("STAGE 1");
 }
 function updateStageHud(){
- document.getElementById("stageLabel").textContent=stage+"/7";
+ document.getElementById("stageLabel").textContent=stage+"/10";
  const goal=stageGoal();
  const prev=stage===1?0:settings[difficulty].goals[stage-2];
  const pct=Math.max(0,Math.min(100,(score-prev)/(goal-prev)*100));
@@ -294,7 +295,7 @@ function showBanner(text){
 }
 function checkStage(){
  if(score<stageGoal())return;
- if(stage>=7){gameClear();return}
+ if(stage>=10){gameClear();return}
  stage++;
  clearInterval(spawnTimer);
  spawnTimer=setInterval(createObject,curSpawn());
@@ -306,7 +307,7 @@ function gameClear(){
  clearInterval(spawnTimer);clearInterval(loopTimer);clearObjects();
  document.getElementById("touchPad").style.display="none";
  document.getElementById("endTitle").textContent="🎉 클리어!";
- document.getElementById("finalScore").textContent="7스테이지 완주! 점수: "+score+"점";
+ document.getElementById("finalScore").textContent="10스테이지 완주! 점수: "+score+"점";
  document.getElementById("recordQuestion").textContent="이 점수를 랭킹에 기록할까요?";
  document.getElementById("recordQuestion").style.display="block";
  document.querySelector("#gameOverScreen .buttons").style.display="flex";
